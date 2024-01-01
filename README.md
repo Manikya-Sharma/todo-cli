@@ -1,5 +1,7 @@
 # A mini todo-cli
 
+> Documentation available at [docs.rs](https://docs.rs/todo-cli-manikya/0.1.0/todo_cli_manikya/)
+
 ## About
 
 This is a small todo app written in rust for learning purposes.
