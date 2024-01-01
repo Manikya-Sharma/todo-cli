@@ -1,10 +1,10 @@
 [package]
-name = "todo-cli"
+name = "todo-cli-manikya"
 version = "0.1.0"
 edition = "2021"
 authors = ["Manikya-Sharma"]
 description = "A mini todo-cli app for learning purpose"
-readme = "https://github.com/Manikya-Sharma/todo-cli"
+readme = "README.md"
 repository = "https://github.com/Manikya-Sharma/todo-cli"
 license = "MIT"
 

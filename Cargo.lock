@@ -578,7 +578,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "todo-cli"
+name = "todo-cli-manikya"
 version = "0.1.0"
 dependencies = [
  "clap",
