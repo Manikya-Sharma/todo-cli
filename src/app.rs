@@ -6,8 +6,13 @@ pub struct App {
 pub enum Status {
     /// Editing state
     ///
-    /// String stores the buffer value for the new task
-    Editing(String),
+    /// edit stores the buffer value for the new task
+    ///
+    /// previous tells if we are editing a task or creating new one
+    Editing {
+        edit: String,
+        previous: Option<usize>,
+    },
     /// Idle state
     ///
     /// usize stores the current selection index
@@ -32,32 +37,40 @@ impl App {
 
     /// Add a character to the current task being added/changed
     pub fn add_char(&mut self, ch: char) {
-        if let Status::Editing(edit) = &mut self.status {
+        if let Status::Editing { edit, previous: _ } = &mut self.status {
             edit.push(ch);
         }
     }
 
     /// Remove a charecter fromt he current task being added/changed
     pub fn pop_char(&mut self) {
-        if let Status::Editing(edit) = &mut self.status {
+        if let Status::Editing { edit, previous: _ } = &mut self.status {
             edit.pop();
         }
     }
 
     /// Get access to the task which is being written by user while being added
-    pub fn get_buffer_task(&self) -> String {
-        if let Status::Editing(edit) = &self.status {
+    pub fn get_editing_task(&self) -> String {
+        if let Status::Editing { edit, previous: _ } = &self.status {
             edit.to_string()
         } else {
             String::new()
         }
     }
 
+    pub fn get_prev_task(&self) -> Option<usize> {
+        if let Status::Editing { edit: _, previous } = &self.status {
+            *previous
+        } else {
+            None
+        }
+    }
+
     /// Navigating downward direction in idle mode
-    pub fn idle_down(&mut self) {
+    pub fn idle_down(&mut self, max: usize) {
         if let Status::Idle(idx) = &mut self.status {
             if let Some(i) = idx {
-                *i += 1;
+                *i = (*i + 1).clamp(0, max);
             } else {
                 *idx = Some(0);
             }
@@ -76,11 +89,11 @@ impl App {
     }
 
     /// Getting access to the current highlighte task in idle mode
-    pub fn get_idle_idx(&self) -> usize {
+    pub fn get_idle_idx(&self) -> Option<usize> {
         if let Status::Idle(Some(i)) = &self.status {
-            return *i;
+            return Some(*i);
         }
-        0
+        None
     }
 }
 

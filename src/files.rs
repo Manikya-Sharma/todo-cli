@@ -6,7 +6,10 @@ use std::{
 
 use csv::ReaderBuilder;
 
-use crate::{state::State, Result};
+use crate::{
+    state::{State, Task},
+    Result,
+};
 
 const FOLDER_NAME: &str = ".todo-cli";
 const CSV_NAME: &str = ".todo-cli/data.csv";
@@ -30,9 +33,21 @@ pub fn create_metadata() -> Result<()> {
 /// Serialize and enter the data to the file
 pub fn enter_data_to_file(state: &State) -> Result<()> {
     if let Some(home) = dirs::home_dir() {
-        let tasks_as_vec = state.get_str_tasks(&None);
+        let tasks_as_vec = state.get_tasks();
         let mut writer = csv::Writer::from_path(home.join(Path::new(CSV_NAME)))?;
-        writer.write_record(tasks_as_vec)?;
+
+        // header
+        writer.write_record(&["id", "desc", "status"])?;
+
+        // contents
+        for task in tasks_as_vec {
+            writer.write_record(&[
+                task.id.to_string(),
+                task.desc.clone(),
+                task.completed.to_string(),
+            ])?;
+        }
+
         writer.flush()?;
         Ok(())
     } else {
@@ -48,14 +63,13 @@ pub fn read_data_from_file() -> Result<State> {
     if let Some(home) = dirs::home_dir() {
         let mut state = State::new();
         let file = File::open(home.join(Path::new(CSV_NAME)))?;
-        let mut reader = ReaderBuilder::new().has_headers(false).from_reader(file);
+        let mut reader = ReaderBuilder::new().from_reader(file);
         for record in reader.records() {
             let record = record?;
-            for task in record.into_iter() {
-                if !task.is_empty() {
-                    state.add_task(task);
-                }
-            }
+            let task: Task = record.deserialize(None)?;
+            let id = task.id.clone();
+            state.tasks.insert(id, task);
+            state.ids.push(id);
         }
         Ok(state)
     } else {

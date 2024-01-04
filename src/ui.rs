@@ -58,7 +58,10 @@ fn render_status_widget(mode: &Status, f: &mut Frame, size: Rect) {
         Paragraph::new({
             match mode {
                 Status::Idle(_) => "Idle Mode",
-                Status::Editing(_) => "Editing Mode",
+                Status::Editing {
+                    previous: _,
+                    edit: _,
+                } => "Editing Mode",
                 Status::Exiting => "Exiting",
             }
         })
@@ -78,9 +81,9 @@ fn render_keymap_widget(mode: &Status, f: &mut Frame, size: Rect) {
     f.render_widget(
         Paragraph::new({
             match mode {
-                Status::Idle(_) => "enter - edit task    x - delete task    i/e - create new task",
-                Status::Editing(_) => "enter - submit task, esc - cancel",
-                Status::Exiting => "Exiting",
+                Status::Idle(_) => "Enter:Edit \u{ff5c} x:Delete \u{ff5c} i/e:New \u{ff5c} q:Quit \u{ff5c} \u{2191}/\u{2193}:Select",
+                Status::Editing{edit: _, previous: _} => "enter - submit task, esc - cancel",
+                Status::Exiting => "",
             }
         })
         .block(
@@ -153,7 +156,7 @@ fn render_exiting_widget(f: &mut Frame, area: Rect) {
 fn render_idle_widget(f: &mut Frame, idx: &Option<usize>, state: &State, size: Rect) {
     f.render_widget(
         List::new({
-            let tasks = state.get_str_tasks(idx);
+            let tasks = state.get_str_tasks(idx.as_ref());
             if tasks.is_empty() {
                 vec!["Tasks which you add will show up here".to_string()]
             } else {
@@ -168,7 +171,7 @@ fn render_idle_widget(f: &mut Frame, idx: &Option<usize>, state: &State, size: R
                 .title("Tasks")
                 .padding(Padding::horizontal(1))
                 .fg({
-                    if state.get_str_tasks(idx).is_empty() {
+                    if state.tasks.is_empty() {
                         Color::DarkGray
                     } else {
                         Color::LightBlue
@@ -185,7 +188,7 @@ pub fn ui(terminal: &mut Term, app: &App, state: &State) -> Result<()> {
         let layout = get_layout().split(f.size());
         render_status_widget(&app.status, f, layout[0]);
         match &app.status {
-            Status::Editing(edit) => {
+            Status::Editing { edit, previous: _ } => {
                 f.render_widget(Clear, f.size());
                 render_editing_widget(f, edit, f.size());
             }

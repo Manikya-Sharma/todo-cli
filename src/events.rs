@@ -12,22 +12,29 @@ fn manage_idle_events(app: &mut App, state: &mut State, key: KeyCode) {
         KeyCode::Char('q') => {
             app.switch_status(Status::Exiting);
         }
-        KeyCode::Char('e') | KeyCode::Char('i') => {
-            app.switch_status(Status::Editing(String::new()))
-        }
+        KeyCode::Char('e') | KeyCode::Char('i') => app.switch_status(Status::Editing {
+            edit: String::new(),
+            previous: None,
+        }),
         KeyCode::Char('d') | KeyCode::Char('x') => {
             let idx = app.get_idle_idx();
-            state.remove_task(idx);
+            if let Some(idx) = idx {
+                state.remove_task_by_seq(idx);
+            }
         }
-        KeyCode::Down | KeyCode::Char('j') => app.idle_down(),
+        KeyCode::Down | KeyCode::Char('j') => app.idle_down(state.ids.len() - 1),
         KeyCode::Up | KeyCode::Char('k') => app.idle_up(),
         KeyCode::Enter => {
             let idx = app.get_idle_idx();
-            if idx >= state.get_len() {
-                return;
+            if let Some(idx) = idx {
+                if idx >= state.ids.len() {
+                    return;
+                }
+                app.switch_status(Status::Editing {
+                    edit: state.tasks.get(&state.ids[idx]).unwrap().desc.clone(),
+                    previous: Some(idx),
+                });
             }
-            app.switch_status(Status::Editing(state.get_task_text(idx).to_string()));
-            state.remove_task(idx);
         }
         _ => {}
     }
@@ -36,12 +43,16 @@ fn manage_idle_events(app: &mut App, state: &mut State, key: KeyCode) {
 /// Managing all the events in editing state of the app
 fn manage_edit_events(app: &mut App, state: &mut State, key: KeyCode) {
     match key {
-        // TODO: Esc will remove the existing task when editing
         KeyCode::Esc => app.switch_status(Status::Idle(None)),
         KeyCode::Enter => {
-            let task = app.get_buffer_task();
+            let task = app.get_editing_task();
             if task.trim().is_empty() {
                 return;
+            }
+            let prev = app.get_prev_task();
+            if prev.is_some() {
+                // editing already existing task
+                state.remove_task_by_seq(prev.unwrap())
             }
             state.add_task(&task);
             app.switch_status(Status::Idle(Some(0)))
@@ -74,7 +85,10 @@ fn helper(app: &mut App, state: &mut State, key: KeyCode) -> bool {
         Status::Idle(_) => {
             manage_idle_events(app, state, key);
         }
-        Status::Editing(_) => {
+        Status::Editing {
+            edit: _,
+            previous: _,
+        } => {
             manage_edit_events(app, state, key);
         }
         Status::Exiting => {

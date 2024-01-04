@@ -33,11 +33,11 @@ impl Args {
                 Commands::List => {
                     if check_existing_metadata() {
                         let data = read_data_from_file()?;
-                        if data.get_len() == 0 {
+                        if data.tasks.is_empty() {
                             println!("No tasks yet");
                         } else {
-                            for task in data.get_str_tasks(&None) {
-                                println!(" == {}", task)
+                            for task in data.get_tasks() {
+                                println!(" == {}", task.desc)
                             }
                         }
                     } else {

@@ -18,3 +18,9 @@ pub mod ui;
 /// This will allow easy propagation of errors till the main function
 /// irrespectove of error type
 pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+
+type Id = i32;
+
+pub fn get_id() -> Id {
+    fastrand::i32(1000..10000)
+}
