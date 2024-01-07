@@ -59,7 +59,10 @@ fn manage_idle_events(app: &mut App, state: &mut State, key: KeyCode) {
 /// Managing all the events in editing state of the app
 fn manage_edit_events(app: &mut App, state: &mut State, key: KeyCode) {
     match key {
-        KeyCode::Esc => app.switch_status(Status::Idle(None)),
+        KeyCode::Esc => app.switch_status(Status::Idle {
+            cursor: None,
+            scroll: 0,
+        }),
         KeyCode::Enter => {
             let task = app.get_editing_task();
             if task.trim().is_empty() {
@@ -71,7 +74,10 @@ fn manage_edit_events(app: &mut App, state: &mut State, key: KeyCode) {
                 state.remove_task_by_seq(idx)
             }
             state.add_task(&task);
-            app.switch_status(Status::Idle(Some(0)))
+            app.switch_status(Status::Idle {
+                cursor: Some(0),
+                scroll: 0,
+            })
         }
         KeyCode::Char(ch) => {
             app.add_char(ch);
@@ -86,7 +92,10 @@ fn manage_edit_events(app: &mut App, state: &mut State, key: KeyCode) {
 /// Managing all the events in exiting state of the app
 fn manage_exiting_events(app: &mut App, key: KeyCode) -> bool {
     match key {
-        KeyCode::Esc | KeyCode::Char('n') => app.switch_status(Status::Idle(None)),
+        KeyCode::Esc | KeyCode::Char('n') => app.switch_status(Status::Idle {
+            cursor: None,
+            scroll: 0,
+        }),
         KeyCode::Char('y') | KeyCode::Char('q') => {
             return true;
         }
@@ -98,7 +107,10 @@ fn manage_exiting_events(app: &mut App, key: KeyCode) -> bool {
 /// Local hepler function made for improving modularity of main function
 fn helper(app: &mut App, state: &mut State, key: KeyCode) -> bool {
     match app.status {
-        Status::Idle(_) => {
+        Status::Idle {
+            cursor: _,
+            scroll: _,
+        } => {
             manage_idle_events(app, state, key);
         }
         Status::Editing {

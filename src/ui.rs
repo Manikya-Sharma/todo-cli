@@ -7,7 +7,8 @@ use ratatui::{
     backend::CrosstermBackend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Style, Stylize},
-    widgets::{Block, BorderType, Borders, Clear, List, Padding, Paragraph},
+    text::Line,
+    widgets::{Block, BorderType, Borders, Clear, Padding, Paragraph},
     Frame, Terminal,
 };
 type Term = Terminal<CrosstermBackend<std::io::Stderr>>;
@@ -57,7 +58,10 @@ fn render_status_widget(mode: &Status, f: &mut Frame, size: Rect) {
     f.render_widget(
         Paragraph::new({
             match mode {
-                Status::Idle(_) => "Idle Mode",
+                Status::Idle {
+                    cursor: _,
+                    scroll: _,
+                } => "Idle Mode",
                 Status::Editing {
                     previous: _,
                     edit: _,
@@ -81,7 +85,10 @@ fn render_keymap_widget(mode: &Status, f: &mut Frame, size: Rect) {
     f.render_widget(
         Paragraph::new({
             match mode {
-                Status::Idle(_) => "e:Edit \u{ff5c} x:Delete \u{ff5c} i:New \u{ff5c} q:Quit  \u{ff5c} Enter:Mark complete \u{ff5c} \u{2191}/\u{2193}:Select",
+                Status::Idle{
+            cursor: _,
+            scroll: _,
+        } => "e:Edit \u{ff5c} x:Delete \u{ff5c} i:New \u{ff5c} q:Quit  \u{ff5c} Enter:Mark complete \u{ff5c} \u{2191}/\u{2193}:Select",
                 Status::Editing{edit: _, previous: _} => "enter - submit task, esc - cancel",
                 Status::Exiting => "",
             }
@@ -153,37 +160,39 @@ fn render_exiting_widget(f: &mut Frame, area: Rect) {
 }
 
 /// UI when user is neither editing nor exiting a task
-fn render_idle_widget(f: &mut Frame, idx: &Option<usize>, state: &State, size: Rect) {
-    f.render_widget(
-        List::new({
-            let tasks = state.get_str_tasks(idx.as_ref());
-            if tasks.is_empty() {
-                vec!["Tasks which you add will show up here".to_string()]
-            } else {
-                tasks
-            }
-        })
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .border_style(Style::default().fg(Color::Green))
-                .border_type(BorderType::Rounded)
-                .title("Tasks")
-                .padding(Padding::horizontal(1))
-                .fg({
-                    if state.tasks.is_empty() {
-                        Color::DarkGray
-                    } else {
-                        Color::LightBlue
-                    }
-                }),
-        ),
-        size,
-    );
+fn render_idle_widget(f: &mut Frame, idx: &Option<usize>, app: &App, state: &State, size: Rect) {
+    let tasks = state.get_str_tasks(idx.as_ref());
+    let tasks = if tasks.is_empty() {
+        vec![Line::from("Tasks which you add will show up here")]
+    } else {
+        tasks.iter().map(|line| Line::from(line.as_str())).collect()
+    };
+    if let Status::Idle { cursor: _, scroll } = app.status {
+        f.render_widget(
+            Paragraph::new(tasks)
+                .block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .border_style(Style::default().fg(Color::Green))
+                        .border_type(BorderType::Rounded)
+                        .title("Tasks")
+                        .padding(Padding::horizontal(1))
+                        .fg({
+                            if state.tasks.is_empty() {
+                                Color::DarkGray
+                            } else {
+                                Color::LightBlue
+                            }
+                        }),
+                )
+                .scroll((scroll as u16, 0)),
+            size,
+        );
+    }
 }
 
 /// Show the final ui in the terminal based on existing state
-pub fn ui(terminal: &mut Term, app: &App, state: &State) -> Result<()> {
+pub fn ui(terminal: &mut Term, app: &mut App, state: &State) -> Result<()> {
     terminal.draw(|f| {
         let layout = get_layout().split(f.size());
         render_status_widget(&app.status, f, layout[0]);
@@ -192,8 +201,11 @@ pub fn ui(terminal: &mut Term, app: &App, state: &State) -> Result<()> {
                 f.render_widget(Clear, f.size());
                 render_editing_widget(f, edit, f.size());
             }
-            Status::Idle(idx) => {
-                render_idle_widget(f, idx, state, layout[1]);
+            Status::Idle {
+                cursor: idx,
+                scroll: _,
+            } => {
+                render_idle_widget(f, idx, app, state, layout[1]);
             }
             Status::Exiting => {
                 render_exiting_widget(f, layout[1]);

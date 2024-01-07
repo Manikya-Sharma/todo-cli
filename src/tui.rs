@@ -44,7 +44,7 @@ fn implement_tui() -> Result<()> {
     }
     let mut app = App::new();
     loop {
-        ui(&mut terminal, &app, &state)?;
+        ui(&mut terminal, &mut app, &state)?;
         if handle_events(&mut app, &mut state)? {
             // upload the new tasks
             enter_data_to_file(&state)?;
