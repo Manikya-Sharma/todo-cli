@@ -42,54 +42,100 @@ Alternatively, use cargo run while providing `opt-level=3` in `Cargo.toml`.
 
 ## Usage
 
+### Begin TUI
+
+Run without any arguments to start the TUI
+
+```bash
+todo-cli
+```
+
+### Help
+
 Get help regarding cli
 
 ```bash
 todo-cli help
 ```
 
-Run without any arguments to start the TUI
+You can also run help on any subcommand, e.g.
 
 ```bash
-todo-cli  # starts tui in alternate screen
+todo-cli list help
 ```
 
-List all the existing tasks in the terminal
+### List
+
+List out all the tasks
 
 ```bash
 todo-cli list
 ```
 
-Remove all the existing tasks
+List out all the tasks which are not yet completed
+
+```bash
+todo-cli list -p true   # p stands for pending
+```
+
+List out all the tasks which are completed
+
+```bash
+todo-cli list -c true
+```
+
+Find out tasks using fuzzy search
+
+```bash
+todo-cli list -f "buy"    # list all tasks with buy
+```
+
+You cna combine multiple flags for more specific searches
+
+```bash
+todo-cli list -p true -f "cmp"    # all pending tasks with fuzzy
+                                  # e.g. "organize computer" task
+                                  # which is pending will match
+```
+
+### Clear all data
 
 ```bash
 todo-cli clean
 ```
 
-### Navigating in TUI
+### Edit a task
 
-You can use either the arrow keys or `j` and `k` to move down and up respectively
+Currently, only TUI supports editing a task but CLI feature will be added soon!
 
 ## How its made
 
-Some of the amazing crates which have been used to build this project are: -
+The todo-cli follows a very simple approach, keep all the tasks in a csv and access them efficiently as and when needed.
 
-- `ratatui` and `crossterm`
-- `clap`
-- `dirs`
-- `csv`
-
-Intensive documentation has been done for almost all the functions and methods to make the code easy to understand
+This project stand on the shoulder of giants, by managing majority of requirements from external dependencies.
 
 ## Scope for improvement
 
 This project is far from complete yet and needs many improvements
 
-- Improve performance while navigation the tasks in tui
-- Add option to use only CLI for adding and managing tasks
-- Add a hash value to tasks and store then properly in csv for fast access and management
+- [x] Improve performance while navigation the tasks in tui
+- [x] Add a hash value to tasks and store then properly in csv for fast access and management
+- [ ] Add options to use only CLI for adding and managing tasks
+- [ ] Use hashing algorithm instead of RNG for task ID
 
-## Missing features
+## Missing features / Bugs
 
-- Tasks can only be deleted but not marked as complete
-- Updating task is using poor makeshift method by replacing instead of actually updating it
+- Tasks cannot yet be edited using CLI
+- Excess tasks will overflow from TUI
+- No method yet to know about ID or status of a task in TUI
+- Tasks are rendered naively in TUI which does not offer customization.
+- No provision for storing dates when tasks are created/edited
+
+## Some ambitious features
+
+This list includes those features which are not currently high priority but can improve User Experience
+
+- Allow customization of themes using yml/toml
+- Make tasks richer by allowing bold, italic, highlight, internal and external links
+- Tags for tasks which follow common ideas
+- Extra status for tasks in-progress
