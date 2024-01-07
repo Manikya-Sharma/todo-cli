@@ -9,22 +9,28 @@ use crate::{
 /// Managing all the events occuring in idle state of the app
 fn manage_idle_events(app: &mut App, state: &mut State, key: KeyCode) {
     match key {
+        // quit
         KeyCode::Char('q') => {
             app.switch_status(Status::Exiting);
         }
-        KeyCode::Char('e') | KeyCode::Char('i') => app.switch_status(Status::Editing {
+        // new task
+        KeyCode::Char('i') => app.switch_status(Status::Editing {
             edit: String::new(),
             previous: None,
         }),
+        // delete task
         KeyCode::Char('d') | KeyCode::Char('x') => {
             let idx = app.get_idle_idx();
             if let Some(idx) = idx {
                 state.remove_task_by_seq(idx);
             }
         }
+        // move down
         KeyCode::Down | KeyCode::Char('j') => app.idle_down(state.ids.len() - 1),
+        // moev up
         KeyCode::Up | KeyCode::Char('k') => app.idle_up(),
-        KeyCode::Enter => {
+        // edit the task
+        KeyCode::Char('e') => {
             let idx = app.get_idle_idx();
             if let Some(idx) = idx {
                 if idx >= state.ids.len() {
@@ -34,6 +40,16 @@ fn manage_idle_events(app: &mut App, state: &mut State, key: KeyCode) {
                     edit: state.tasks.get(&state.ids[idx]).unwrap().desc.clone(),
                     previous: Some(idx),
                 });
+            }
+        }
+        // mark task complete
+        KeyCode::Enter => {
+            let idx = app.get_idle_idx();
+            if let Some(idx) = idx {
+                if idx > state.ids.len() {
+                    return;
+                }
+                state.mark_task_complete(idx);
             }
         }
         _ => {}
@@ -50,9 +66,9 @@ fn manage_edit_events(app: &mut App, state: &mut State, key: KeyCode) {
                 return;
             }
             let prev = app.get_prev_task();
-            if prev.is_some() {
+            if let Some(idx) = prev {
                 // editing already existing task
-                state.remove_task_by_seq(prev.unwrap())
+                state.remove_task_by_seq(idx)
             }
             state.add_task(&task);
             app.switch_status(Status::Idle(Some(0)))

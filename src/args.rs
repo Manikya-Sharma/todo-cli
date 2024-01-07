@@ -1,9 +1,12 @@
-use clap::{Parser, Subcommand};
+use clap::{Args as ClapArgs, Parser, Subcommand};
 
 use crate::{
-    files::{check_existing_metadata, read_data_from_file, remove_metadata},
+    files::{
+        check_existing_metadata, create_metadata, enter_data_to_file, read_data_from_file,
+        remove_metadata,
+    },
     tui::run,
-    Result,
+    Id, Result,
 };
 
 /// Args to be used for the application
@@ -20,6 +23,24 @@ enum Commands {
     Clean,
     /// List out all the existing tasks
     List,
+    /// Add a new task
+    Add(AddArgs),
+    /// Remove a task
+    Remove(RemoveArgs),
+}
+
+#[derive(ClapArgs)]
+struct AddArgs {
+    /// Description for the command to be added
+    #[arg(short)]
+    description: String,
+}
+
+#[derive(ClapArgs)]
+struct RemoveArgs {
+    /// Id of the task to be removed
+    #[arg(short)]
+    id: Id,
 }
 
 impl Args {
@@ -28,7 +49,14 @@ impl Args {
         if let Some(command) = &self.command {
             match command {
                 Commands::Clean => {
-                    remove_metadata()?;
+                    println!("Are you sure you want to delete all tasks?(y/n)");
+                    let mut ans = String::new();
+                    std::io::stdin().read_line(&mut ans)?;
+                    let ans = ans.trim();
+                    if ans.eq("y") {
+                        remove_metadata()?;
+                        println!("All tasks removed successfuly");
+                    }
                 }
                 Commands::List => {
                     if check_existing_metadata() {
@@ -37,11 +65,36 @@ impl Args {
                             println!("No tasks yet");
                         } else {
                             for task in data.get_tasks() {
-                                println!(" == {}", task.desc)
+                                println!("{} == {} == {}", task.id, task.desc, {
+                                    if task.completed {
+                                        "completed task"
+                                    } else {
+                                        "pending task"
+                                    }
+                                })
                             }
                         }
                     } else {
                         println!("No tasks yet");
+                    }
+                }
+                Commands::Add(add_args) => {
+                    if !check_existing_metadata() {
+                        create_metadata()?;
+                    }
+                    let mut data = read_data_from_file()?;
+                    data.add_task(&add_args.description);
+                    enter_data_to_file(&data)?;
+                    println!("Added new task successfully");
+                }
+                Commands::Remove(remove_args) => {
+                    if check_existing_metadata() {
+                        let mut data = read_data_from_file()?;
+                        if data.remove_task(&remove_args.id).is_none() {
+                            println!("No such task found");
+                        } else {
+                            enter_data_to_file(&data)?;
+                        }
                     }
                 }
             }

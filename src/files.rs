@@ -37,7 +37,7 @@ pub fn enter_data_to_file(state: &State) -> Result<()> {
         let mut writer = csv::Writer::from_path(home.join(Path::new(CSV_NAME)))?;
 
         // header
-        writer.write_record(&["id", "desc", "status"])?;
+        writer.write_record(["id", "desc", "status"])?;
 
         // contents
         for task in tasks_as_vec {
@@ -67,7 +67,7 @@ pub fn read_data_from_file() -> Result<State> {
         for record in reader.records() {
             let record = record?;
             let task: Task = record.deserialize(None)?;
-            let id = task.id.clone();
+            let id = task.id;
             state.tasks.insert(id, task);
             state.ids.push(id);
         }

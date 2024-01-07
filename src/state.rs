@@ -3,21 +3,11 @@ use std::collections::HashMap;
 use crate::{get_id, Id};
 
 /// Structure of a single task
-#[derive(serde::Deserialize)]
+#[derive(Default, serde::Deserialize)]
 pub struct Task {
     pub id: Id,
     pub desc: String,
     pub completed: bool,
-}
-
-impl Default for Task {
-    fn default() -> Self {
-        Self {
-            id: 0,
-            desc: String::new(),
-            completed: false,
-        }
-    }
 }
 
 /// The overall state of application
@@ -37,9 +27,6 @@ impl Task {
     fn mark_complete(&mut self) {
         self.completed = true;
     }
-    fn change_desc(&mut self, new_desc: &str) {
-        self.desc = new_desc.to_owned();
-    }
 }
 
 impl State {
@@ -57,14 +44,13 @@ impl State {
     }
 
     /// remove task with given id
-    fn remove_task(&mut self, id: &Id) {
-        self.ids = self
-            .ids
-            .iter()
-            .filter(|old_id| *old_id != id)
-            .map(|old_id| *old_id)
-            .collect();
-        self.tasks.remove(id);
+    pub fn remove_task(&mut self, id: &Id) -> Option<()> {
+        if self.tasks.remove(id).is_some() {
+            self.ids.retain(|old_id| old_id != id);
+            Some(())
+        } else {
+            None
+        }
     }
 
     /// delete a particular task at an index from the given state
@@ -76,15 +62,10 @@ impl State {
     }
 
     // TODO: This method should have been used
-    pub fn mark_task_complete(&mut self, id: &Id) {
-        if let Some(task) = self.tasks.get_mut(id) {
+    pub fn mark_task_complete(&mut self, idx: usize) {
+        let id = self.ids[idx];
+        if let Some(task) = self.tasks.get_mut(&id) {
             task.mark_complete();
-        }
-    }
-    // TODO: This method should have been used
-    pub fn change_task_description(&mut self, id: &Id, new_desc: &str) {
-        if let Some(task) = self.tasks.get_mut(id) {
-            task.change_desc(new_desc);
         }
     }
 

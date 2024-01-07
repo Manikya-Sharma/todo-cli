@@ -81,7 +81,7 @@ fn render_keymap_widget(mode: &Status, f: &mut Frame, size: Rect) {
     f.render_widget(
         Paragraph::new({
             match mode {
-                Status::Idle(_) => "Enter:Edit \u{ff5c} x:Delete \u{ff5c} i/e:New \u{ff5c} q:Quit \u{ff5c} \u{2191}/\u{2193}:Select",
+                Status::Idle(_) => "e:Edit \u{ff5c} x:Delete \u{ff5c} i:New \u{ff5c} q:Quit  \u{ff5c} Enter:Mark complete \u{ff5c} \u{2191}/\u{2193}:Select",
                 Status::Editing{edit: _, previous: _} => "enter - submit task, esc - cancel",
                 Status::Exiting => "",
             }
