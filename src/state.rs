@@ -61,7 +61,6 @@ impl State {
         self.remove_task(&self.ids[idx].clone());
     }
 
-    // TODO: This method should have been used
     pub fn mark_task_complete(&mut self, idx: usize) {
         let id = self.ids[idx];
         if let Some(task) = self.tasks.get_mut(&id) {
@@ -70,7 +69,7 @@ impl State {
     }
 
     pub fn get_str_tasks(&self, highlight: Option<&usize>) -> Vec<String> {
-        // TODO: This method is too inefficient, use a stateful list instead
+        // TODO: This method is too inefficient, use a stateful list instead maybe
         let mut ans: Vec<String> = self
             .get_tasks()
             .iter()
