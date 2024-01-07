@@ -17,3 +17,4 @@ dirs = "5.0.1"
 fastrand = "2.0.1"
 serde = { version = "1.0.194", features = ["derive"] }
 cli-table = "0.4.7"
+sublime_fuzzy = "0.7.0"

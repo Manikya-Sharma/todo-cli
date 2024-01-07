@@ -1,11 +1,13 @@
 use clap::{Args as ClapArgs, Parser, Subcommand};
 use cli_table::{print_stdout, Cell, Color, Style, Table};
+use sublime_fuzzy::best_match;
 
 use crate::{
     files::{
         check_existing_metadata, create_metadata, enter_data_to_file, read_data_from_file,
         remove_metadata,
     },
+    state::State,
     tui::run,
     Id, Result,
 };
@@ -36,11 +38,14 @@ struct ListArgs {
     #[arg(short)]
     completed: Option<bool>,
     /// List only the tasks which are incomplete
-    #[arg(short = 'n')]
+    #[arg(short = 'p')]
     incomplete: Option<bool>,
     /// Show a task with particular id
     #[arg(short)]
     id: Option<Id>,
+    /// Get the required tasks using a fuzzy search
+    #[arg(short = 'f')]
+    fuzzy: Option<String>,
 }
 
 #[derive(ClapArgs)]
@@ -55,6 +60,50 @@ struct RemoveArgs {
     /// Id of the task to be removed
     #[arg(short)]
     id: Id,
+}
+
+fn show_multiple_tasks_in_a_table(data: State, options: &ListArgs) -> Result<()> {
+    let mut table = Vec::new();
+    for task in data.get_tasks() {
+        if (options.completed.is_some() && !task.completed)
+            || (options.incomplete.is_some() && task.completed)
+        {
+            continue;
+        }
+        // fuzzy search
+        if let Some(search) = &options.fuzzy {
+            if best_match(&search, &task.desc).is_none() {
+                continue;
+            }
+        }
+        table.push(vec![
+            task.id.cell(),
+            task.desc.clone().cell(),
+            match task.completed {
+                true => "Completed".cell().foreground_color(Some(Color::Green)),
+                false => "Pending"
+                    .cell()
+                    .bold(true)
+                    .foreground_color(Some(Color::Red)),
+            },
+        ]);
+    }
+    let table = table.table().title(vec![
+        "Task ID"
+            .cell()
+            .bold(true)
+            .foreground_color(Some(Color::Blue)),
+        "Task Description"
+            .cell()
+            .bold(true)
+            .foreground_color(Some(Color::Blue)),
+        "Status"
+            .cell()
+            .bold(true)
+            .foreground_color(Some(Color::Blue)),
+    ]);
+    print_stdout(table)?;
+    Ok(())
 }
 
 impl Args {
@@ -93,44 +142,8 @@ impl Args {
                                 } else {
                                     println!("No such task found!");
                                 }
-                            // print multiple tasks in a table
                             } else {
-                                let mut table = Vec::new();
-                                for task in data.get_tasks() {
-                                    if (options.completed.is_some() && !task.completed)
-                                        || (options.completed.is_none() && task.completed)
-                                    {
-                                        continue;
-                                    }
-                                    table.push(vec![
-                                        task.id.cell(),
-                                        task.desc.clone().cell(),
-                                        match task.completed {
-                                            true => "Completed"
-                                                .cell()
-                                                .foreground_color(Some(Color::Green)),
-                                            false => "Pending"
-                                                .cell()
-                                                .bold(true)
-                                                .foreground_color(Some(Color::Red)),
-                                        },
-                                    ]);
-                                }
-                                let table = table.table().title(vec![
-                                    "Task ID"
-                                        .cell()
-                                        .bold(true)
-                                        .foreground_color(Some(Color::Blue)),
-                                    "Task Description"
-                                        .cell()
-                                        .bold(true)
-                                        .foreground_color(Some(Color::Blue)),
-                                    "Status"
-                                        .cell()
-                                        .bold(true)
-                                        .foreground_color(Some(Color::Blue)),
-                                ]);
-                                print_stdout(table)?;
+                                show_multiple_tasks_in_a_table(data, options)?;
                             }
                         }
                     } else {
