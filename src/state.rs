@@ -27,6 +27,9 @@ impl Task {
     fn mark_complete(&mut self) {
         self.completed = true;
     }
+    fn mark_incomplete(&mut self) {
+        self.completed = false;
+    }
 }
 
 impl State {
@@ -61,13 +64,32 @@ impl State {
         self.remove_task(&self.ids[idx].clone());
     }
 
-    pub fn mark_task_complete(&mut self, idx: usize) {
+    /// mark incomplete task complete and vice versa
+    ///
+    /// returns true if task marked as complete else false
+    pub fn toggle_task_status(&mut self, idx: usize) -> Option<bool> {
         let id = self.ids[idx];
+        self.toggle_task_status_by_id(id)
+    }
+
+    /// mark incomplete task complete and vice versa
+    ///
+    /// returns true if task marked as complete else false
+    pub fn toggle_task_status_by_id(&mut self, id: Id) -> Option<bool> {
         if let Some(task) = self.tasks.get_mut(&id) {
-            task.mark_complete();
+            if task.completed {
+                task.mark_incomplete();
+                Some(false)
+            } else {
+                task.mark_complete();
+                Some(true)
+            }
+        } else {
+            None
         }
     }
 
+    /// get all the tasks as a string
     pub fn get_str_tasks(&self, highlight: Option<&usize>) -> Vec<String> {
         // TODO: This method is too inefficient, use a stateful list instead maybe
         let mut ans: Vec<String> = self

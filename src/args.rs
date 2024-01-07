@@ -30,6 +30,10 @@ enum Commands {
     Add(AddArgs),
     /// Remove a task
     Remove(RemoveArgs),
+    /// Edit a task with an id
+    Edit(EditArgs),
+    /// Mark a task complete or incomplete
+    Mark(MarkArgs),
 }
 
 #[derive(ClapArgs)]
@@ -62,6 +66,20 @@ struct RemoveArgs {
     id: Id,
 }
 
+#[derive(ClapArgs)]
+struct EditArgs {
+    #[arg(short)]
+    id: Id,
+    #[arg(short)]
+    description: String,
+}
+
+#[derive(ClapArgs)]
+struct MarkArgs {
+    #[arg(short)]
+    id: Id,
+}
+
 fn show_multiple_tasks_in_a_table(data: State, options: &ListArgs) -> Result<()> {
     let mut table = Vec::new();
     for task in data.get_tasks() {
@@ -72,7 +90,7 @@ fn show_multiple_tasks_in_a_table(data: State, options: &ListArgs) -> Result<()>
         }
         // fuzzy search
         if let Some(search) = &options.fuzzy {
-            if best_match(&search, &task.desc).is_none() {
+            if best_match(search, &task.desc).is_none() {
                 continue;
             }
         }
@@ -166,6 +184,33 @@ impl Args {
                             println!("No such task found");
                         } else {
                             enter_data_to_file(&data)?;
+                        }
+                    }
+                }
+                Commands::Edit(edit_args) => {
+                    if check_existing_metadata() {
+                        let mut data = read_data_from_file()?;
+                        if data.remove_task(&edit_args.id).is_some() {
+                            data.add_task(&edit_args.description);
+                            enter_data_to_file(&data)?;
+                            println!("Task changed successfully");
+                        } else {
+                            println!("No task with this id found");
+                        }
+                    }
+                }
+                Commands::Mark(mark_args) => {
+                    if check_existing_metadata() {
+                        let mut data = read_data_from_file()?;
+                        if let Some(complete) = data.toggle_task_status_by_id(mark_args.id) {
+                            enter_data_to_file(&data)?;
+                            if complete {
+                                println!("Marked task as complete");
+                            } else {
+                                println!("Marked task as incomplete");
+                            }
+                        } else {
+                            println!("No such task found");
                         }
                     }
                 }

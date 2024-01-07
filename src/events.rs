@@ -49,7 +49,7 @@ fn manage_idle_events(app: &mut App, state: &mut State, key: KeyCode) {
                 if idx > state.ids.len() {
                     return;
                 }
-                state.mark_task_complete(idx);
+                state.toggle_task_status(idx);
             }
         }
         _ => {}
