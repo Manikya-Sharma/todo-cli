@@ -159,9 +159,27 @@ fn render_exiting_widget(f: &mut Frame, area: Rect) {
 fn render_idle_widget(f: &mut Frame, app: &App, state: &State, size: Rect) {
     // render all the tasks
     let mut tasks: Vec<&ListItem> = Vec::new();
-    for id in &state.ids {
-        tasks.push(state.tasks.get(id).unwrap());
+
+    // determine scroll
+    // NOTE: minimum number of rows available for tasks must be 5
+
+    if let Some(selected) = state.selected {
+        let start_index = {
+            if selected > 4 {
+                selected - 4
+            } else {
+                0
+            }
+        };
+        for id in state.ids.iter().skip(start_index) {
+            if let Some(task) = state.tasks.get(id) {
+                tasks.push(task);
+            }
+        }
+    } else {
+        tasks.extend(state.ids.iter().filter_map(|id| state.tasks.get(id)));
     }
+
     if let Status::Idle = app.status {
         let mut state = ListState::default();
         f.render_stateful_widget(
