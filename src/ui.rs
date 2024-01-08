@@ -1,16 +1,18 @@
 use crate::{
     app::{App, Status},
-    state::State,
+    state::{ListItem, State},
     Result,
 };
 use ratatui::{
     backend::CrosstermBackend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Style, Stylize},
-    text::Line,
-    widgets::{Block, BorderType, Borders, Clear, Padding, Paragraph},
+    widgets::{Block, BorderType, Borders, Clear, Padding, Paragraph, Widget},
     Frame, Terminal,
 };
+
+use tui_widget_list::{List, ListState};
+
 type Term = Terminal<CrosstermBackend<std::io::Stderr>>;
 
 /// return the central rect for the popup
@@ -58,10 +60,7 @@ fn render_status_widget(mode: &Status, f: &mut Frame, size: Rect) {
     f.render_widget(
         Paragraph::new({
             match mode {
-                Status::Idle {
-                    cursor: _,
-                    scroll: _,
-                } => "Idle Mode",
+                Status::Idle => "Idle Mode",
                 Status::Editing {
                     previous: _,
                     edit: _,
@@ -85,10 +84,7 @@ fn render_keymap_widget(mode: &Status, f: &mut Frame, size: Rect) {
     f.render_widget(
         Paragraph::new({
             match mode {
-                Status::Idle{
-            cursor: _,
-            scroll: _,
-        } => "e:Edit \u{ff5c} x:Delete \u{ff5c} i:New \u{ff5c} q:Quit  \u{ff5c} Enter:Mark complete \u{ff5c} \u{2191}/\u{2193}:Select",
+                Status::Idle => "e:Edit \u{ff5c} x:Delete \u{ff5c} i:New \u{ff5c} q:Quit  \u{ff5c} Enter:Mark complete \u{ff5c} \u{2191}/\u{2193}:Select",
                 Status::Editing{edit: _, previous: _} => "enter - submit task, esc - cancel",
                 Status::Exiting => "",
             }
@@ -160,34 +156,50 @@ fn render_exiting_widget(f: &mut Frame, area: Rect) {
 }
 
 /// UI when user is neither editing nor exiting a task
-fn render_idle_widget(f: &mut Frame, idx: &Option<usize>, app: &App, state: &State, size: Rect) {
-    let tasks = state.get_str_tasks(idx.as_ref());
-    let tasks = if tasks.is_empty() {
-        vec![Line::from("Tasks which you add will show up here")]
-    } else {
-        tasks.iter().map(|line| Line::from(line.as_str())).collect()
-    };
-    if let Status::Idle { cursor: _, scroll } = app.status {
-        f.render_widget(
-            Paragraph::new(tasks)
-                .block(
-                    Block::default()
-                        .borders(Borders::ALL)
-                        .border_style(Style::default().fg(Color::Green))
-                        .border_type(BorderType::Rounded)
-                        .title("Tasks")
-                        .padding(Padding::horizontal(1))
-                        .fg({
-                            if state.tasks.is_empty() {
-                                Color::DarkGray
-                            } else {
-                                Color::LightBlue
-                            }
-                        }),
-                )
-                .scroll((scroll as u16, 0)),
+fn render_idle_widget(f: &mut Frame, app: &App, state: &State, size: Rect) {
+    // render all the tasks
+    let mut tasks: Vec<&ListItem> = Vec::new();
+    for id in &state.ids {
+        tasks.push(state.tasks.get(id).unwrap());
+    }
+    if let Status::Idle = app.status {
+        let mut state = ListState::default();
+        f.render_stateful_widget(
+            List::new(tasks).block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .border_style(Style::default().fg(Color::Green))
+                    .border_type(BorderType::Rounded)
+                    .title("Tasks")
+                    .padding(Padding::horizontal(1)),
+            ),
             size,
+            &mut state,
         );
+    }
+}
+
+pub fn render_list_item(
+    item: &ListItem,
+    area: ratatui::prelude::Rect,
+    buf: &mut ratatui::prelude::Buffer,
+) {
+    if item.selected {
+        Paragraph::new(item.task.desc.clone())
+            .style(
+                Style::default()
+                    .bg(ratatui::style::Color::LightBlue)
+                    .fg(ratatui::style::Color::Black),
+            )
+            .render(area, buf);
+    } else if item.task.completed {
+        Paragraph::new(item.task.desc.clone())
+            .style(Style::default().fg(ratatui::style::Color::LightGreen))
+            .render(area, buf);
+    } else {
+        Paragraph::new(item.task.desc.clone())
+            .style(Style::default().fg(ratatui::style::Color::LightRed))
+            .render(area, buf);
     }
 }
 
@@ -201,11 +213,8 @@ pub fn ui(terminal: &mut Term, app: &mut App, state: &State) -> Result<()> {
                 f.render_widget(Clear, f.size());
                 render_editing_widget(f, edit, f.size());
             }
-            Status::Idle {
-                cursor: idx,
-                scroll: _,
-            } => {
-                render_idle_widget(f, idx, app, state, layout[1]);
+            Status::Idle => {
+                render_idle_widget(f, app, state, layout[1]);
             }
             Status::Exiting => {
                 render_exiting_widget(f, layout[1]);

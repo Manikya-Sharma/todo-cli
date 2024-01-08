@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
-use crate::{get_id, Id};
+use tui_widget_list::Listable;
+
+use crate::{get_id, ui::render_list_item, Id};
 
 /// Structure of a single task
 #[derive(Default, serde::Deserialize)]
@@ -8,12 +10,6 @@ pub struct Task {
     pub id: Id,
     pub desc: String,
     pub completed: bool,
-}
-
-/// The overall state of application
-pub struct State {
-    pub ids: Vec<Id>,
-    pub tasks: HashMap<Id, Task>,
 }
 
 impl Task {
@@ -32,18 +28,95 @@ impl Task {
     }
 }
 
+/// wrapper for a task as a list item
+pub struct ListItem {
+    pub task: Task,
+    pub selected: bool,
+}
+
+impl Listable for &ListItem {
+    fn height(&self) -> usize {
+        1
+    }
+    fn highlight(self) -> Self
+    where
+        Self: Sized,
+    {
+        self
+    }
+}
+
+impl ratatui::widgets::Widget for &ListItem {
+    fn render(self, area: ratatui::prelude::Rect, buf: &mut ratatui::prelude::Buffer) {
+        render_list_item(self, area, buf);
+    }
+}
+
+impl ListItem {
+    pub fn from(task: &Task) -> Self {
+        Self {
+            selected: false,
+            task: Task {
+                completed: task.completed,
+                desc: task.desc.clone(),
+                id: task.id,
+            },
+        }
+    }
+    fn set_selected(&mut self) {
+        self.selected = true;
+    }
+    fn set_unselected(&mut self) {
+        self.selected = false;
+    }
+}
+
+/// The overall state of application
+pub struct State {
+    pub ids: Vec<Id>,
+    pub tasks: HashMap<Id, ListItem>,
+    /// index of selected task
+    pub selected: Option<usize>,
+}
+
 impl State {
     pub fn new() -> Self {
         Self {
             ids: Vec::new(),
             tasks: HashMap::new(),
+            selected: None,
         }
     }
+
+    /// Move app state selection
+    pub fn move_selection(&mut self, upwards: bool) {
+        if let Some(selected) = &self.selected {
+            let next = {
+                if upwards {
+                    selected.saturating_sub(1)
+                } else {
+                    *selected + 1
+                }
+            }
+            .clamp(0, self.ids.len() - 1);
+            self.tasks
+                .get_mut(&self.ids[*selected])
+                .unwrap()
+                .set_unselected();
+            self.tasks.get_mut(&self.ids[next]).unwrap().set_selected();
+            self.selected = Some(next);
+        } else {
+            self.tasks.get_mut(&self.ids[0]).unwrap().set_selected();
+            self.selected = Some(0);
+        }
+    }
+
     /// Add a new task to the given state
     pub fn add_task(&mut self, new_task: &str) {
         let new_id = get_id();
         self.ids.insert(0, new_id);
-        self.tasks.insert(new_id, Task::new(new_task));
+        self.tasks
+            .insert(new_id, ListItem::from(&Task::new(new_task)));
     }
 
     /// remove task with given id
@@ -76,12 +149,12 @@ impl State {
     ///
     /// returns true if task marked as complete else false
     pub fn toggle_task_status_by_id(&mut self, id: Id) -> Option<bool> {
-        if let Some(task) = self.tasks.get_mut(&id) {
-            if task.completed {
-                task.mark_incomplete();
+        if let Some(list_item) = self.tasks.get_mut(&id) {
+            if list_item.task.completed {
+                list_item.task.mark_incomplete();
                 Some(false)
             } else {
-                task.mark_complete();
+                list_item.task.mark_complete();
                 Some(true)
             }
         } else {
@@ -89,37 +162,11 @@ impl State {
         }
     }
 
-    /// get all the tasks as a string
-    pub fn get_str_tasks(&self, highlight: Option<&usize>) -> Vec<String> {
-        // TODO: This method is too inefficient, use a stateful list instead maybe
-        let mut ans: Vec<String> = self
-            .get_tasks()
-            .iter()
-            .map(|task| task.desc.clone())
-            .collect();
-        if ans.is_empty() {
-            return Vec::new();
-        }
-        if let Some(idx) = highlight {
-            if *idx >= ans.len() {
-                let len = ans.len();
-                ans[len - 1].insert_str(0, "->    ");
-            } else {
-                for (i, elem) in ans.iter_mut().enumerate() {
-                    if i == *idx {
-                        elem.insert_str(0, "->    ");
-                    }
-                }
-            }
-        }
-        ans
-    }
-
     /// Return all the tasks as a vector of tasks
     pub fn get_tasks(&self) -> Vec<&Task> {
         let mut ans = Vec::new();
         for id in &self.ids {
-            ans.push(self.tasks.get(id).unwrap());
+            ans.push(&self.tasks.get(id).unwrap().task);
         }
         ans
     }
@@ -128,5 +175,25 @@ impl State {
 impl Default for State {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn check_selection_change() {
+        let mut state = State::new();
+        state.add_task("abc");
+        state.add_task("123");
+        state.add_task("xyz");
+        assert!(state.selected.is_none());
+        state.move_selection(true);
+        assert!(state.selected.is_some());
+        assert_eq!(state.selected.unwrap(), 0);
+        state.move_selection(false);
+        assert_eq!(state.selected.unwrap(), 1);
+        assert!(state.tasks.get(&state.ids[1]).unwrap().selected);
     }
 }

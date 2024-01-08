@@ -14,15 +14,7 @@ pub enum Status {
         previous: Option<usize>,
     },
     /// Idle state
-    Idle {
-        /// the currently selected task index
-        ///
-        /// None means that there is no selection
-        cursor: Option<usize>,
-
-        /// scroll position
-        scroll: usize,
-    },
+    Idle,
     /// Exiting state
     ///
     /// This is to avoid abrupt closure and ask before exit
@@ -33,10 +25,7 @@ impl App {
     /// Generate new app instance with default values
     pub fn new() -> Self {
         Self {
-            status: Status::Idle {
-                cursor: None,
-                scroll: 0,
-            },
+            status: Status::Idle,
         }
     }
     /// Change status of the app
@@ -67,59 +56,13 @@ impl App {
         }
     }
 
+    // TODO is it needed?
     pub fn get_prev_task(&self) -> Option<usize> {
         if let Status::Editing { edit: _, previous } = &self.status {
             *previous
         } else {
             None
         }
-    }
-
-    /// Navigating downward direction in idle mode
-    pub fn idle_down(&mut self, max: usize) {
-        if let Status::Idle {
-            cursor: idx,
-            scroll,
-        } = &mut self.status
-        {
-            if let Some(i) = idx {
-                *i = (*i + 1).clamp(0, max);
-                // scroll only at the middle
-                if *i >= 5 && *i < max - 2 {
-                    *scroll = scroll.saturating_add(1);
-                }
-            } else {
-                *idx = Some(0);
-            }
-        }
-    }
-
-    /// Navigation upward direction in idle mode
-    pub fn idle_up(&mut self) {
-        if let Status::Idle {
-            cursor: idx,
-            scroll,
-        } = &mut self.status
-        {
-            if let Some(i) = idx {
-                *i = i.saturating_sub(1);
-                *scroll = scroll.saturating_sub(1);
-            } else {
-                *idx = Some(0)
-            }
-        }
-    }
-
-    /// Getting access to the current highlighte task in idle mode
-    pub fn get_idle_idx(&self) -> Option<usize> {
-        if let Status::Idle {
-            cursor: Some(i),
-            scroll: _,
-        } = &self.status
-        {
-            return Some(*i);
-        }
-        None
     }
 }
 

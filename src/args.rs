@@ -148,11 +148,11 @@ impl Args {
                             // only want a certain task
                             if let Some(id) = options.id {
                                 let task = data.tasks.get(&id);
-                                if let Some(task) = task {
+                                if let Some(list_item) = task {
                                     println!(
                                         "TASK FOUND\nDescription: {}\nStatus: {}",
-                                        task.desc,
-                                        match task.completed {
+                                        list_item.task.desc,
+                                        match list_item.task.completed {
                                             true => "Completed",
                                             false => "Pending",
                                         }

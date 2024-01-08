@@ -634,6 +634,16 @@ dependencies = [
  "ratatui",
  "serde",
  "sublime_fuzzy",
+ "tui-widget-list",
+]
+
+[[package]]
+name = "tui-widget-list"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "04f1ae8d52324edc08600c7e3583f104c5872138f95b35572f6f9e068990192e"
+dependencies = [
+ "ratatui",
 ]
 
 [[package]]

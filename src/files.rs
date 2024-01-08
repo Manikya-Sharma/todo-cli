@@ -68,7 +68,13 @@ pub fn read_data_from_file() -> Result<State> {
             let record = record?;
             let task: Task = record.deserialize(None)?;
             let id = task.id;
-            state.tasks.insert(id, task);
+            state.tasks.insert(
+                id,
+                crate::state::ListItem {
+                    task,
+                    selected: false,
+                },
+            );
             state.ids.push(id);
         }
         Ok(state)

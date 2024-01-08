@@ -20,37 +20,40 @@ fn manage_idle_events(app: &mut App, state: &mut State, key: KeyCode) {
         }),
         // delete task
         KeyCode::Char('d') | KeyCode::Char('x') => {
-            let idx = app.get_idle_idx();
-            if let Some(idx) = idx {
-                state.remove_task_by_seq(idx);
-            }
+            // TODO highlight idx
+            // let idx = app.get_idle_idx();
+            // if let Some(idx) = idx {
+            //     state.remove_task_by_seq(idx);
+            // }
         }
         // move down
-        KeyCode::Down | KeyCode::Char('j') => app.idle_down(state.ids.len() - 1),
+        KeyCode::Down | KeyCode::Char('j') => state.move_selection(false),
         // moev up
-        KeyCode::Up | KeyCode::Char('k') => app.idle_up(),
+        KeyCode::Up | KeyCode::Char('k') => state.move_selection(true),
         // edit the task
         KeyCode::Char('e') => {
-            let idx = app.get_idle_idx();
-            if let Some(idx) = idx {
-                if idx >= state.ids.len() {
-                    return;
-                }
-                app.switch_status(Status::Editing {
-                    edit: state.tasks.get(&state.ids[idx]).unwrap().desc.clone(),
-                    previous: Some(idx),
-                });
-            }
+            // TODO highlight idx
+            // let idx = app.get_idle_idx();
+            // if let Some(idx) = idx {
+            //     if idx >= state.ids.len() {
+            //         return;
+            //     }
+            //     app.switch_status(Status::Editing {
+            //         edit: state.tasks.get(&state.ids[idx]).unwrap().task.desc.clone(),
+            //         previous: Some(idx),
+            //     });
+            // }
         }
         // mark task complete
         KeyCode::Enter => {
-            let idx = app.get_idle_idx();
-            if let Some(idx) = idx {
-                if idx > state.ids.len() {
-                    return;
-                }
-                state.toggle_task_status(idx);
-            }
+            // TODO highlight idx
+            // let idx = app.get_idle_idx();
+            // if let Some(idx) = idx {
+            //     if idx > state.ids.len() {
+            //         return;
+            //     }
+            //     state.toggle_task_status(idx);
+            // }
         }
         _ => {}
     }
@@ -59,10 +62,7 @@ fn manage_idle_events(app: &mut App, state: &mut State, key: KeyCode) {
 /// Managing all the events in editing state of the app
 fn manage_edit_events(app: &mut App, state: &mut State, key: KeyCode) {
     match key {
-        KeyCode::Esc => app.switch_status(Status::Idle {
-            cursor: None,
-            scroll: 0,
-        }),
+        KeyCode::Esc => app.switch_status(Status::Idle),
         KeyCode::Enter => {
             let task = app.get_editing_task();
             if task.trim().is_empty() {
@@ -74,10 +74,7 @@ fn manage_edit_events(app: &mut App, state: &mut State, key: KeyCode) {
                 state.remove_task_by_seq(idx)
             }
             state.add_task(&task);
-            app.switch_status(Status::Idle {
-                cursor: Some(0),
-                scroll: 0,
-            })
+            app.switch_status(Status::Idle)
         }
         KeyCode::Char(ch) => {
             app.add_char(ch);
@@ -92,10 +89,7 @@ fn manage_edit_events(app: &mut App, state: &mut State, key: KeyCode) {
 /// Managing all the events in exiting state of the app
 fn manage_exiting_events(app: &mut App, key: KeyCode) -> bool {
     match key {
-        KeyCode::Esc | KeyCode::Char('n') => app.switch_status(Status::Idle {
-            cursor: None,
-            scroll: 0,
-        }),
+        KeyCode::Esc | KeyCode::Char('n') => app.switch_status(Status::Idle),
         KeyCode::Char('y') | KeyCode::Char('q') => {
             return true;
         }
@@ -107,10 +101,7 @@ fn manage_exiting_events(app: &mut App, key: KeyCode) -> bool {
 /// Local hepler function made for improving modularity of main function
 fn helper(app: &mut App, state: &mut State, key: KeyCode) -> bool {
     match app.status {
-        Status::Idle {
-            cursor: _,
-            scroll: _,
-        } => {
+        Status::Idle => {
             manage_idle_events(app, state, key);
         }
         Status::Editing {
