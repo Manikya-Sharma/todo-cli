@@ -19,3 +19,4 @@ serde = { version = "1.0.194", features = ["derive"] }
 cli-table = "0.4.7"
 sublime_fuzzy = "0.7.0"
 tui-widget-list = "0.6.0"
+chrono = {version = "0.4.31", features = ["serde"]}

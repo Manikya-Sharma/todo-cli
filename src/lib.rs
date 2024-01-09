@@ -1,3 +1,5 @@
+use chrono::{DateTime, Datelike, Local};
+
 /// Manage the status of the TUI application
 pub mod app;
 /// Manage the args passed in cli
@@ -23,4 +25,14 @@ type Id = i32;
 
 pub fn get_id() -> Id {
     fastrand::i32(1000..10000)
+}
+
+pub fn format_date(date: DateTime<Local>) -> String {
+    let now_date = Local::now();
+    // different years
+    if date.year() != now_date.year() {
+        format!("{}", date.format("%d/%m/%Y"))
+    } else {
+        format!("{}", date.format("%d/%m, %H:%M"))
+    }
 }

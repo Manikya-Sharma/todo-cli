@@ -1,15 +1,17 @@
 use std::collections::HashMap;
 
+use chrono::{DateTime, Local};
 use tui_widget_list::Listable;
 
 use crate::{get_id, ui::render_list_item, Id};
 
 /// Structure of a single task
-#[derive(Default, serde::Deserialize)]
+#[derive(Default, serde::Serialize, serde::Deserialize)]
 pub struct Task {
     pub id: Id,
     pub desc: String,
     pub completed: bool,
+    pub last_updated: DateTime<Local>,
 }
 
 impl Task {
@@ -18,6 +20,7 @@ impl Task {
             id: get_id(),
             desc: task.to_owned(),
             completed: false,
+            last_updated: Local::now(),
         }
     }
     fn mark_complete(&mut self) {
@@ -60,6 +63,7 @@ impl ListItem {
                 completed: task.completed,
                 desc: task.desc.clone(),
                 id: task.id,
+                last_updated: task.last_updated,
             },
         }
     }

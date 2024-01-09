@@ -37,7 +37,7 @@ pub fn enter_data_to_file(state: &State) -> Result<()> {
         let mut writer = csv::Writer::from_path(home.join(Path::new(CSV_NAME)))?;
 
         // header
-        writer.write_record(["id", "desc", "status"])?;
+        writer.write_record(["id", "desc", "status", "updated"])?;
 
         // contents
         for task in tasks_as_vec {
@@ -45,6 +45,7 @@ pub fn enter_data_to_file(state: &State) -> Result<()> {
                 task.id.to_string(),
                 task.desc.clone(),
                 task.completed.to_string(),
+                task.last_updated.to_string(),
             ])?;
         }
 

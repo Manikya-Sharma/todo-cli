@@ -7,6 +7,7 @@ use crate::{
         check_existing_metadata, create_metadata, enter_data_to_file, read_data_from_file,
         remove_metadata,
     },
+    format_date,
     state::State,
     tui::run,
     Id, Result,
@@ -104,6 +105,7 @@ fn show_multiple_tasks_in_a_table(data: State, options: &ListArgs) -> Result<()>
                     .bold(true)
                     .foreground_color(Some(Color::Red)),
             },
+            format_date(task.last_updated).cell(),
         ]);
     }
     let table = table.table().title(vec![
@@ -116,6 +118,10 @@ fn show_multiple_tasks_in_a_table(data: State, options: &ListArgs) -> Result<()>
             .bold(true)
             .foreground_color(Some(Color::Blue)),
         "Status"
+            .cell()
+            .bold(true)
+            .foreground_color(Some(Color::Blue)),
+        "Last Updated"
             .cell()
             .bold(true)
             .foreground_color(Some(Color::Blue)),
