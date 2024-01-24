@@ -1,5 +1,6 @@
 use crate::{
     app::{App, Status},
+    format_date,
     state::{ListItem, State},
     Result,
 };
@@ -81,10 +82,14 @@ fn render_status_widget(mode: &Status, f: &mut Frame, size: Rect) {
 
 /// Determine and render the content for keymap section of app
 fn render_keymap_widget(mode: &Status, f: &mut Frame, size: Rect) {
+    let k_layout = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(70), Constraint::Percentage(30)])
+        .split(size);
     f.render_widget(
         Paragraph::new({
             match mode {
-                Status::Idle => "e:Edit \u{ff5c} x:Delete \u{ff5c} i:New \u{ff5c} q:Quit  \u{ff5c} Enter:Mark complete \u{ff5c} \u{2191}/\u{2193}:Select",
+                Status::Idle => "e:Edit \u{ff5c} x:Delete \u{ff5c} i:New \u{ff5c} q:Quit  \u{ff5c} Enter:Toggle status\u{ff5c} \u{2191}/\u{2193}:Select",
                 Status::Editing{edit: _, previous: _} => "enter - submit task, esc - cancel",
                 Status::Exiting => "",
             }
@@ -94,9 +99,24 @@ fn render_keymap_widget(mode: &Status, f: &mut Frame, size: Rect) {
                 .borders(Borders::TOP)
                 .border_style(Style::new().fg(Color::Blue))
                 .border_type(BorderType::Rounded),
-        ),
-        size,
+        ),k_layout[0],
     );
+    f.render_widget(
+        Paragraph::new({
+            match mode {
+                Status::Idle => "\u{25cf}: Completed \u{ff5c}  \u{25ef}: Incomplete",
+                _ => "",
+            }
+        })
+        .block(
+            Block::default()
+                .borders(Borders::TOP)
+                .border_style(Style::new().fg(Color::Blue))
+                .border_type(BorderType::Rounded),
+        )
+        .alignment(Alignment::Right),
+        k_layout[1],
+    )
 }
 
 /// UI for the popup to be shown when editing or adding a new task
@@ -140,7 +160,7 @@ fn render_exiting_widget(f: &mut Frame, area: Rect) {
     )
     .split(get_popup_rect(area));
     f.render_widget(
-        Paragraph::new("y to quit, n to cancel")
+        Paragraph::new("y to quit, n to cancel, x to quit without saving")
             .fg(Color::White)
             .alignment(Alignment::Center)
             .block(
@@ -202,23 +222,55 @@ pub fn render_list_item(
     area: ratatui::prelude::Rect,
     buf: &mut ratatui::prelude::Buffer,
 ) {
-    if item.selected {
-        Paragraph::new(item.task.desc.clone())
-            .style(
-                Style::default()
-                    .bg(ratatui::style::Color::LightBlue)
-                    .fg(ratatui::style::Color::Black),
-            )
-            .render(area, buf);
-    } else if item.task.completed {
-        Paragraph::new(item.task.desc.clone())
-            .style(Style::default().fg(ratatui::style::Color::LightGreen))
-            .render(area, buf);
-    } else {
-        Paragraph::new(item.task.desc.clone())
-            .style(Style::default().fg(ratatui::style::Color::LightRed))
-            .render(area, buf);
-    }
+    let row_layout = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Length(3),
+            Constraint::Min(30),
+            Constraint::Min(5),
+        ])
+        .split(area);
+    Paragraph::new({
+        if item.task.completed {
+            "\u{25ef}"
+        } else {
+            "\u{25cf}"
+        }
+    })
+    .render(row_layout[0], buf);
+    Paragraph::new(item.task.desc.clone())
+        .bg({
+            if item.selected {
+                Color::LightBlue
+            } else {
+                Color::default()
+            }
+        })
+        .fg({
+            if item.selected {
+                Color::Black
+            } else {
+                Color::default()
+            }
+        })
+        .render(row_layout[1], buf);
+    Paragraph::new(format_date(item.task.last_updated))
+        .bg({
+            if item.selected {
+                Color::LightBlue
+            } else {
+                Color::default()
+            }
+        })
+        .fg({
+            if item.selected {
+                Color::Rgb(25, 25, 25)
+            } else {
+                Color::Rgb(50, 50, 50)
+            }
+        })
+        .alignment(Alignment::Right)
+        .render(row_layout[2], buf);
 }
 
 /// Show the final ui in the terminal based on existing state

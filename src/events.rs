@@ -20,11 +20,10 @@ fn manage_idle_events(app: &mut App, state: &mut State, key: KeyCode) {
         }),
         // delete task
         KeyCode::Char('d') | KeyCode::Char('x') => {
-            // TODO highlight idx
-            // let idx = app.get_idle_idx();
-            // if let Some(idx) = idx {
-            //     state.remove_task_by_seq(idx);
-            // }
+            let idx = state.selected;
+            if let Some(idx) = idx {
+                state.remove_task_by_seq(idx);
+            }
         }
         // move down
         KeyCode::Down | KeyCode::Char('j') => state.move_selection(false),
@@ -32,28 +31,26 @@ fn manage_idle_events(app: &mut App, state: &mut State, key: KeyCode) {
         KeyCode::Up | KeyCode::Char('k') => state.move_selection(true),
         // edit the task
         KeyCode::Char('e') => {
-            // TODO highlight idx
-            // let idx = app.get_idle_idx();
-            // if let Some(idx) = idx {
-            //     if idx >= state.ids.len() {
-            //         return;
-            //     }
-            //     app.switch_status(Status::Editing {
-            //         edit: state.tasks.get(&state.ids[idx]).unwrap().task.desc.clone(),
-            //         previous: Some(idx),
-            //     });
-            // }
+            let idx = state.selected;
+            if let Some(idx) = idx {
+                if idx >= state.ids.len() {
+                    return;
+                }
+                app.switch_status(Status::Editing {
+                    edit: state.tasks.get(&state.ids[idx]).unwrap().task.desc.clone(),
+                    previous: Some(idx),
+                });
+            }
         }
         // mark task complete
         KeyCode::Enter => {
-            // TODO highlight idx
-            // let idx = app.get_idle_idx();
-            // if let Some(idx) = idx {
-            //     if idx > state.ids.len() {
-            //         return;
-            //     }
-            //     state.toggle_task_status(idx);
-            // }
+            let idx = state.selected;
+            if let Some(idx) = idx {
+                if idx > state.ids.len() {
+                    return;
+                }
+                state.toggle_task_status(idx);
+            }
         }
         _ => {}
     }
@@ -87,19 +84,22 @@ fn manage_edit_events(app: &mut App, state: &mut State, key: KeyCode) {
 }
 
 /// Managing all the events in exiting state of the app
-fn manage_exiting_events(app: &mut App, key: KeyCode) -> bool {
+fn manage_exiting_events(app: &mut App, key: KeyCode) -> Option<bool> {
     match key {
         KeyCode::Esc | KeyCode::Char('n') => app.switch_status(Status::Idle),
         KeyCode::Char('y') | KeyCode::Char('q') => {
-            return true;
+            return Some(true);
+        }
+        KeyCode::Char('x') => {
+            return Some(false);
         }
         _ => {}
     }
-    false
+    None
 }
 
 /// Local hepler function made for improving modularity of main function
-fn helper(app: &mut App, state: &mut State, key: KeyCode) -> bool {
+fn helper(app: &mut App, state: &mut State, key: KeyCode) -> Option<bool> {
     match app.status {
         Status::Idle => {
             manage_idle_events(app, state, key);
@@ -115,7 +115,7 @@ fn helper(app: &mut App, state: &mut State, key: KeyCode) -> bool {
         }
     }
 
-    false
+    None
 }
 
 /// Handles all the inputs fromt the user
@@ -123,7 +123,7 @@ fn helper(app: &mut App, state: &mut State, key: KeyCode) -> bool {
 /// ## Return Type
 /// Returns a `Result` type with a `bool` to tell
 /// when the loop must break
-pub fn handle_events(app: &mut App, state: &mut State) -> Result<bool> {
+pub fn handle_events(app: &mut App, state: &mut State) -> Result<Option<bool>> {
     if crossterm::event::poll(std::time::Duration::from_millis(250))? {
         if let Event::Key(k) = crossterm::event::read()? {
             // press for single keypress in windows
@@ -132,5 +132,5 @@ pub fn handle_events(app: &mut App, state: &mut State) -> Result<bool> {
             }
         }
     }
-    Ok(false)
+    Ok(None)
 }
